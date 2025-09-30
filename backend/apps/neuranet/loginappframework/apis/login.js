@@ -104,6 +104,12 @@ async function _getKeysForOrg(org) {
 	if (keys && keys.length) return _flattenArray(keys, "key"); else return null;
 }
 
+function _flattenArray(results, columnName, functionToCall) { 
+	if (!results) return [];
+	const retArray = []; for (const result of results) retArray.push(
+		functionToCall?functionToCall(result[columnName]):result[columnName]); return retArray;
+}
+
 async function _setKeysForOrg(keys, org) {
 	if (!keys) keys = [serverutils.generateUUID(false)];
 	const keysIn = (!Array.isArray(keys)) ? [keys] : [...keys];
