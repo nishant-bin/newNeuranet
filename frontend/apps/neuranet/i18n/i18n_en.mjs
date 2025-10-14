@@ -5,6 +5,8 @@ export const i18n = {
 "LoginMsg": "Sign in with Tekmonks",
 "LoginFailed": "Login failed",
 "LearnMore": "Learn more",
+"Timeout_Error": "You have been logged out due to inactivity",
+"Relogin": "Relogin here",
 
 "NothingToConvert": "Found nothing to convert.",
 "ErrorConvertingInternal": "Error in conversion, sorry.",
