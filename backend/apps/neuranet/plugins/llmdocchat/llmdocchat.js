@@ -15,16 +15,14 @@
 const mustache = require("mustache");
 const {Readable} = require("stream");
 const serverutils = require(`${CONSTANTS.LIBDIR}/utils.js`);
-const quota = require(`${NEURANET_CONSTANTS.LIBDIR}/quota.js`);
-const aiapp = require(`${NEURANET_CONSTANTS.LIBDIR}/aiapp.js`);
 const llmchat = require(`${NEURANET_CONSTANTS.LIBDIR}/llmchat.js`);
+const chatsessionmod = require(`${NEURANET_CONSTANTS.LIBDIR}/chatsession.js`);
 const textextractor = require(`${NEURANET_CONSTANTS.LIBDIR}/textextractor.js`);
 const llmflowrunner = require(`${NEURANET_CONSTANTS.LIBDIR}/llmflowrunner.js`);
 const neuranetutils = require(`${NEURANET_CONSTANTS.LIBDIR}/neuranetutils.js`);
 const langdetector = require(`${NEURANET_CONSTANTS.THIRDPARTYDIR}/langdetector.js`);
 
-const REASONS = llmflowrunner.REASONS, CHAT_MODEL_DEFAULT = "chat-knowledgebase-openai", 
-    DEBUG_MODE = NEURANET_CONSTANTS.CONF.debug_mode, DEFAULT_MAX_MEMORY_TOKENS = 1000;
+const REASONS = llmflowrunner.REASONS;
 
 /**
  * Runs the LLM. 
@@ -52,30 +50,19 @@ const REASONS = llmflowrunner.REASONS, CHAT_MODEL_DEFAULT = "chat-knowledgebase-
  * 					                 to the exact document
  */
 exports.answer = async (params) => {
-	const id = params.id, org = params.org, session_id = params.session_id, brainid = params.aiappid;
+	const id = params.id, org = params.org, params_session_id = params.session_id, query_in = params.query, 
+		aiappid = params.brainid||params.aiappid;
 
-	LOG.debug(`Got LLM_History chat request from ID ${id} of org ${org}. Incoming params are ${JSON.stringify(params)}`);
+	LOG.debug(`Got llm document chat request for query ${query_in} from ID ${id} of org ${org}.`);
 
-	const aiappThis = await aiapp.getAIApp(id, org, brainid, true);
-    if ((!aiappThis.disable_quota_checks) && (!(await quota.checkQuota(id, org, brainid)))) {
-		const errMsg = `Disallowing the doc chat call, as the user ${id} of org ${org} is over their quota.`;
-		LOG.error(errMsg); params.return_error(errMsg, REASONS.INTERNAL); return;
+	if (!(await llmchat.check_quota(id, org, aiappid))) {
+		LOG.error(`Disallowing the LLM chat call, as the user ${id} is over their quota.`);
+		return {reason: REASONS.LIMIT, ...CONSTANTS.FALSE_RESULT};
 	}
 
-	const chatsession = llmchat.getUsersChatSession(id, session_id).chatsession;
-	const aiModelToUseForChat = params.model.name||CHAT_MODEL_DEFAULT, 
-		aiModelObjectForChat = await aiapp.getAIModel(aiModelToUseForChat, params.model.model_overrides, 
-			params.id, params.org, brainid);
-	const aiModuleToUse = `${NEURANET_CONSTANTS.LIBDIR}/${aiModelObjectForChat.driver.module}`
-	let aiLibrary; try{aiLibrary = serverutils.requireWithDebug(aiModuleToUse, DEBUG_MODE);} catch (err) {
-		const errMsg = "Bad AI Library or model - "+aiModuleToUse+", error: "+err;
-        LOG.error(errMsg); params.return_error(errMsg, REASONS.INTERNAL); return;
-	}
-	const finalSessionObject = chatsession.length ? await llmchat.trimSession(
-		aiModelObjectForChat.max_memory_tokens||DEFAULT_MAX_MEMORY_TOKENS,
-		llmchat.jsonifyContentsInThisSession(chatsession), aiModelObjectForChat, 
-		aiModelObjectForChat.token_approximation_uplift, aiModelObjectForChat.tokenizer, aiLibrary) : [];
-	if (finalSessionObject.length) finalSessionObject[finalSessionObject.length-1].last = true;
+	const {aiModelObject} = await llmchat.getAIModelAndObjectKeyAndLibrary(params.model, id, org, aiappid),
+		aiModelObjectForChat = aiModelObject;	if (!aiModelObjectForChat) {LOG.error("Bad AI Library or model"); return {reason: REASONS.BAD_MODEL, ...CONSTANTS.FALSE_RESULT}}
+	const {sessionID} = chatsessionmod.getUsersChatSession(id, params_session_id);
 
 	const languageDetectedForQuestion =  langdetector.getISOLang(params.question)
 
@@ -112,9 +99,9 @@ exports.answer = async (params) => {
 	const knowledegebaseWithQuestion = mustache.render(
 		knowledgebasePromptTemplate, {...params, documents: documentsForPrompt, files: filesForPrompt}).trim();
 
-	const paramsChat = { id, org, maintain_session: true, session_id, model: aiModelObjectForChat,
+	const paramsChat = { id, org, maintain_session: true, session_id: sessionID, model: aiModelObjectForChat,
         session: [{"role": aiModelObjectForChat.user_role, "content": knowledegebaseWithQuestion}],
-		auto_chat_summary_enabled: params.auto_summary||false, raw_question: params.question, aiappid: brainid };
+		auto_chat_summary_enabled: params.auto_summary||false, raw_question: query_in, aiappid };
 	const response = await llmchat.chat(paramsChat);
 
 	return {...response, metadatas: metadatasForResponse};

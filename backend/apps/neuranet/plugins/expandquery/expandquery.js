@@ -14,16 +14,12 @@
  * (C) 2023 TekMonks. All rights reserved.
  */
 
-const utils = require(`${CONSTANTS.LIBDIR}/utils.js`);
-const quota = require(`${NEURANET_CONSTANTS.LIBDIR}/quota.js`);
-const aiapp = require(`${NEURANET_CONSTANTS.LIBDIR}/aiapp.js`);
 const llmchat = require(`${NEURANET_CONSTANTS.LIBDIR}/llmchat.js`);
+const simplellm = require(`${NEURANET_CONSTANTS.LIBDIR}/simplellm.js`);
 const llmflowrunner = require(`${NEURANET_CONSTANTS.LIBDIR}/llmflowrunner.js`);
 const langdetector = require(`${NEURANET_CONSTANTS.THIRDPARTYDIR}/langdetector.js`);
-const simplellm = require(`${NEURANET_CONSTANTS.LIBDIR}/simplellm.js`);
 
-const REASONS = llmflowrunner.REASONS, CHAT_MODEL_DEFAULT = "chat-knowledgebase-openai", 
-    DEBUG_MODE = NEURANET_CONSTANTS.CONF.debug_mode, DEFAULT_MAX_MEMORY_TOKENS = 1000;
+const REASONS = llmflowrunner.REASONS;
 
 /**
  * Expands the query.
@@ -38,36 +34,26 @@ const REASONS = llmflowrunner.REASONS, CHAT_MODEL_DEFAULT = "chat-knowledgebase-
  * @returns {string} The expanded query or the original query if the expansion failed.
  */
 exports.expand = async (params) => {
-	const id = params.id, org = params.org, session_id = params.session_id, query_in = params.query, 
+	const id = params.id, org = params.org, params_session_id = params.session_id, query_in = params.query, 
 		brainid = params.brainid||params.aiappid, forceExpansion = params.force_expansion;
 
 	LOG.debug(`Got query expansion for query ${query_in} from ID ${id} of org ${org}.`);
 
-	const aiappThis = await aiapp.getAIApp(id, org, brainid, true);
-    if ((!aiappThis.disable_quota_checks) && (!(await quota.checkQuota(id, org, brainid)))) {
-		LOG.error(`Disallowing the call, as the user ${id} of org ${org} is over their quota.`);
-        params.return_error(REASONS.LIMIT); return;
+	if (!(await llmchat.check_quota(id, org, aiappid))) {
+		LOG.error(`Disallowing the LLM chat call, as the user ${id} is over their quota.`);
+		return {reason: REASONS.LIMIT, ...CONSTANTS.FALSE_RESULT};
 	}
 
-	const chatsession = llmchat.getUsersChatSession(id, session_id).chatsession;
+	const {chatsession, sessionID} = llmchat.getUsersChatSession(id, params_session_id);
     if (!chatsession.length && (!forceExpansion)) {
         LOG.info(`Query expansion is returning the original query '${query_in}' due to no existing session for the user ${id} of org ${org}.`)
         return query_in;
     }
 
-	const aiModelToUseForChat = params.model.name||CHAT_MODEL_DEFAULT, 
-		aiModelObjectForChat = await aiapp.getAIModel(aiModelToUseForChat, params.model.model_overrides, 
-			params.id, params.org, brainid);
-	const aiModuleToUse = `${NEURANET_CONSTANTS.LIBDIR}/${aiModelObjectForChat.driver.module}`
-	let aiLibrary; try{aiLibrary = utils.requireWithDebug(aiModuleToUse, DEBUG_MODE);} catch (err) {
-		const errMsg = "Bad AI Library or model - "+aiModuleToUse+", error: "+err;
-        LOG.error(errMsg); params.return_error(errMsg); return;
-	}
-	const finalSessionObject = chatsession.length ? await llmchat.trimSession(
-		aiModelObjectForChat.max_memory_tokens||DEFAULT_MAX_MEMORY_TOKENS,
-		llmchat.jsonifyContentsInThisSession(chatsession), aiModelObjectForChat, 
-		aiModelObjectForChat.token_approximation_uplift, aiModelObjectForChat.tokenizer, aiLibrary) : [];
-	if (finalSessionObject.length) finalSessionObject[finalSessionObject.length-1].last = true;
+	const {aiModelObjectForChat, aiLibrary} = await llmchat.getAIModelAndObjectKeyAndLibrary(params.model, params.id, params.org, params.aiappid);
+	if (!aiModelToUse) {LOG.error("Bad AI Library or model - "+aiModuleToUse); return {reason: REASONS.BAD_MODEL, ...CONSTANTS.FALSE_RESULT}}
+	
+    const finalSessionObject = await chatsession.getFinalSessionObject(id, sessionID, aiModelObjectForChat, aiLibrary);
 	const flatSession = []; for (const sessionObject of finalSessionObject) {
 		const flatSessionObject = {}; flatSessionObject[sessionObject.role] = sessionObject.content;
 		flatSession.push(flatSessionObject);

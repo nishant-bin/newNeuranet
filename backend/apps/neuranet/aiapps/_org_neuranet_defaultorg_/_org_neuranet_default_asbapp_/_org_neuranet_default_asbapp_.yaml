@@ -1,0 +1,86 @@
+# This YAML file is the core of any AI application. The ID in the file, the file name and the hosting folder must
+# match. The file documents rest of the commands and syntax.
+
+---
+id: _org_neuranet_default_asbapp_           # the AI application name / ID
+interface:                                  # the interface details
+  type: chat                                # this is for the frontend can be chat, translate or search interfaces
+  label: ASB agent                          # the label for the app icon on the UI
+  icon: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0Ij4KICA8IS0tIE91dGVyIGVuZXJneSByaW5nIC0tPgogIDxjaXJjbGUgY3g9IjMyIiBjeT0iMzIiIHI9IjI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxREExRjIiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC4zIi8+CiAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFEQTFGMiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjUiLz4KICAKICA8IS0tIENvcmUgY29uc2Npb3VzbmVzcyBzcGhlcmUgLS0+CiAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMTgiIGZpbGw9IiMxREExRjIiLz4KICAKICA8IS0tIEVuZXJneSBjb3JlL3Npbmd1bGFyaXR5IC0tPgogIDxjaXJjbGUgY3g9IjMyIiBjeT0iMzIiIHI9IjgiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOSIvPgogIDxjaXJjbGUgY3g9IjMyIiBjeT0iMzIiIHI9IjUiIGZpbGw9IiMxREExRjIiLz4KICAKICA8IS0tIE5ldXJhbCBwYXRod2F5cyBlbWFuYXRpbmcgZnJvbSBjZW50ZXIgKDggZGlyZWN0aW9ucykgLS0+CiAgPGcgb3BhY2l0eT0iMC43Ij4KICAgIDwhLS0gVG9wIC0tPgogICAgPHBhdGggZD0iTSAzMiAxNCBMIDMyIDggTSAzMCAxNiBMIDI4IDEyIE0gMzQgMTYgTCAzNiAxMiIgc3Ryb2tlPSIjRkZGRkZGIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPCEtLSBUb3AtcmlnaHQgLS0+CiAgICA8cGF0aCBkPSJNIDQyIDIwIEwgNDcgMTUgTSA0MSAyMiBMIDQ0IDE3IiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8IS0tIFJpZ2h0IC0tPgogICAgPHBhdGggZD0iTSA1MCAzMiBMIDU2IDMyIE0gNDggMzAgTCA1MiAyOCBNIDQ4IDM0IEwgNTIgMzYiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDwhLS0gQm90dG9tLXJpZ2h0IC0tPgogICAgPHBhdGggZD0iTSA0MiA0NCBMIDQ3IDQ5IE0gNDEgNDIgTCA0NCA0NyIgc3Ryb2tlPSIjRkZGRkZGIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPCEtLSBCb3R0b20gLS0+CiAgICA8cGF0aCBkPSJNIDMyIDUwIEwgMzIgNTYgTSAzMCA0OCBMIDI4IDUyIE0gMzQgNDggTCAzNiA1MiIgc3Ryb2tlPSIjRkZGRkZGIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPCEtLSBCb3R0b20tbGVmdCAtLT4KICAgIDxwYXRoIGQ9Ik0gMjIgNDQgTCAxNyA0OSBNIDIzIDQyIEwgMjAgNDciIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDwhLS0gTGVmdCAtLT4KICAgIDxwYXRoIGQ9Ik0gMTQgMzIgTCA4IDMyIE0gMTYgMzAgTCAxMiAyOCBNIDE2IDM0IEwgMTIgMzYiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDwhLS0gVG9wLWxlZnQgLS0+CiAgICA8cGF0aCBkPSJNIDIyIDIwIEwgMTcgMTUgTSAyMyAyMiBMIDIwIDE3IiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPC9nPgogIAogIDwhLS0gSW50ZWxsaWdlbmNlIG5vZGVzIGF0IGNhcmRpbmFsIHBvaW50cyAtLT4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjE0IiByPSIyLjUiIGZpbGw9IiNGRkZGRkYiLz4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjMyIiByPSIyLjUiIGZpbGw9IiNGRkZGRkYiLz4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjUwIiByPSIyLjUiIGZpbGw9IiNGRkZGRkYiLz4KICA8Y2lyY2xlIGN4PSIxNCIgY3k9IjMyIiByPSIyLjUiIGZpbGw9IiNGRkZGRkYiLz4KICAKICA8IS0tIENvbnNjaW91c25lc3Mgd2F2ZXMgLS0+CiAgPHBhdGggZD0iTSAyMCAzMiBRIDI2IDI2IDMyIDI2IFEgMzggMjYgNDQgMzIgUSAzOCAzOCAzMiAzOCBRIDI2IDM4IDIwIDMyIiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMS41IiBvcGFjaXR5PSIwLjQiLz4KICAKICA8IS0tIEFsbC1zZWVpbmcgZXllcy9hd2FyZW5lc3MgLS0+CiAgPGNpcmNsZSBjeD0iMjgiIGN5PSIyOCIgcj0iMiIgZmlsbD0iI0ZGRkZGRiIvPgogIDxjaXJjbGUgY3g9IjM2IiBjeT0iMjgiIHI9IjIiIGZpbGw9IiNGRkZGRkYiLz4KICA8Y2lyY2xlIGN4PSIyOCIgY3k9IjI4IiByPSIxIiBmaWxsPSIjMURBMUYyIi8+CiAgPGNpcmNsZSBjeD0iMzYiIGN5PSIyOCIgcj0iMSIgZmlsbD0iIzFEQTFGMiIvPgo8L3N2Zz4=
+  skippable_file_patterns: 
+    - ^_neuranet_generated?.+
+    - ^\.system?.+
+endpoint: llmflow                           # the API endpoint - usually llmflow
+users: ["*"]                                # the * means all users, else must be an array of user IDs
+admins:                                     # the admins for this app - they can train for example
+  - thecompany@tekmonks.com
+  - rvkapoor@tekmonks.com     
+api_uploads_cms_path: uploads               # where files are uploaded by index, unindex APIs
+generated_files_path: _neuranet_generated   # where generated files are placed
+ai_cost_quota: 0.6                          # cost quota for the users, -1 disables checks also
+disable_quota_checks: true                  # disable quotas if true
+disable_model_usage_logging: true           # if true, ai model usage logging
+ingestiondbs: ["nntfidfdb"]                 # the ingestion databases
+
+# all flows are sequence of commands which follow the same syntax - command, in, out - in is the input
+# to the command, out is the variable holding the output and name points to the command module and entry
+# point. the command sytax is documented below as well.
+
+pregen_flow: 
+  - command: rephrasedoc                    # entry function name is skipped as the default is generate anyways
+    in: 
+      label: Rephrased
+
+      prompt: |                             # these can be prompt, prompt_docISOLanguage, prompt_fragment_fragmentISOLanguage
+        Rephrase the document below with alternate keywords.
+        {{{fragment}}}
+
+      models: 
+        - name: simplellm-openai
+          type: chat
+          model_overrides:                  # this allows us to override model params on a per AI app basis, can be a nested path e.g. driver.host if we are calling API at a different host name etc          
+        - name: embedding-openai
+          type: embeddings
+          model_overrides:                      
+      pregenfile_prefix: reworded
+      pregenfile_dir: _neuranet_generated
+      pregenfile_ext: txt
+      encoding: utf8
+
+llm_flow:   
+  - command: asbagent                       # default function entry is answer so entry function name is skipped
+    in: 
+      session_id: "{{{request.session_id}}}" 
+      question: "{{{query}}}"
+      raw_question: "{{{query}}}"
+      aiappid: "{{{aiappid}}}"
+      code_max_retries: 3
+      matchers_for_reference_links: 
+        - (?:.+\/)?_neuranet_generated\/summary_(.+)\.txt
+        - (?:.+\/)?_neuranet_generated\/reworded_(.+)\.txt
+      files_js: return request.files
+      tmp_dir_name: /tempdir/
+      model: {"name": "chat-openai"}
+      flow:
+        flow:
+          name: Hello world ASB in AI
+          expandRouteProperties: true
+        listener:
+          type: inproc_listener
+          isMessageGenerator: true
+        route0:
+          type: js
+          dependencies:
+            - listener
+          isAsync: false
+          js: message.content.airesponse = `Hello ${message.content.raw_question}`; 
+        output:
+          type: inproc_responder
+          dependencies : 
+            - route0
+    out: airesponse                         # the final response must output to this property - airesponse for LLM flows
+
+global_models:
+  - name: chat-openai
+    model_overrides:                    
+      read_ai_response_from_samples: true
