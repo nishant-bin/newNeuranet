@@ -16,6 +16,7 @@
 
 const llmchat = require(`${NEURANET_CONSTANTS.LIBDIR}/llmchat.js`);
 const simplellm = require(`${NEURANET_CONSTANTS.LIBDIR}/simplellm.js`);
+const chatsessionmod = require(`${NEURANET_CONSTANTS.LIBDIR}/chatsession.js`);
 const llmflowrunner = require(`${NEURANET_CONSTANTS.LIBDIR}/llmflowrunner.js`);
 const langdetector = require(`${NEURANET_CONSTANTS.THIRDPARTYDIR}/langdetector.js`);
 
@@ -39,21 +40,21 @@ exports.expand = async (params) => {
 
 	LOG.debug(`Got query expansion for query ${query_in} from ID ${id} of org ${org}.`);
 
-	if (!(await llmchat.check_quota(id, org, aiappid))) {
+	if (!(await llmchat.check_quota(id, org, brainid))) {
 		LOG.error(`Disallowing the LLM chat call, as the user ${id} is over their quota.`);
 		return {reason: REASONS.LIMIT, ...CONSTANTS.FALSE_RESULT};
 	}
 
-	const {chatsession, sessionID} = llmchat.getUsersChatSession(id, params_session_id);
+	const {chatsession, sessionID} = chatsessionmod.getUsersChatSession(id, params_session_id);
     if (!chatsession.length && (!forceExpansion)) {
         LOG.info(`Query expansion is returning the original query '${query_in}' due to no existing session for the user ${id} of org ${org}.`)
         return query_in;
     }
 
-	const {aiModelObjectForChat, aiLibrary} = await llmchat.getAIModelAndObjectKeyAndLibrary(params.model, params.id, params.org, params.aiappid);
-	if (!aiModelToUse) {LOG.error("Bad AI Library or model - "+aiModuleToUse); return {reason: REASONS.BAD_MODEL, ...CONSTANTS.FALSE_RESULT}}
+	const {aiModelObject, aiLibrary} = await llmchat.getAIModelAndObjectKeyAndLibrary(params.model, params.id, params.org, params.aiappid);
+	if ((!aiModelObject) || (!aiLibrary)) {LOG.error("Bad AI library or model - "+params.model); return {reason: REASONS.BAD_MODEL, ...CONSTANTS.FALSE_RESULT}}
 	
-    const finalSessionObject = await chatsession.getFinalSessionObject(id, sessionID, aiModelObjectForChat, aiLibrary);
+    const finalSessionObject = await chatsessionmod.getFinalSessionObject(id, sessionID, aiModelObject, aiLibrary);
 	const flatSession = []; for (const sessionObject of finalSessionObject) {
 		const flatSessionObject = {}; flatSessionObject[sessionObject.role] = sessionObject.content;
 		flatSession.push(flatSessionObject);
@@ -65,7 +66,7 @@ exports.expand = async (params) => {
         expandedQuery = await simplellm.prompt_answer(
             params[`prompt_${languageDetectedForQuestion}`] || params.prompt, id, org, brainid,
 			{flatsession: flatSession, session: finalSessionObject, question: query_in, ...params}, 
-			aiModelObjectForChat);
+			aiModelObject);
 		if (!expandedQuery) LOG.error("Couldn't expand the query, continuing with the originial query.");
     }
 
