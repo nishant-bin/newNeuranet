@@ -26,8 +26,9 @@ async function processChatResponse(result, _chatboxid) {
 }
 
 function getChatRequest(question, files, _chatboxid, aiappid) {
+    const message_id = `${Date.now()}${Math.floor(Math.random() * 1000) + 1}`;
     return {id: session.get(APP_CONSTANTS.USERID), org: session.get(APP_CONSTANTS.USERORG), question, files,
-        session_id: chatsessionID, aiappid};
+        session_id: chatsessionID, aiappid, message_id};
 }
 
 export const main = {initView, processChatResponse, getChatRequest};

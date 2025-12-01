@@ -30,6 +30,7 @@ export const APP_CONSTANTS = {
     TKMLOGIN_LIB: `${APP_PATH}/3p/tkmlogin.mjs`,
     API_LOGIN: API_PATH+"/login",
     TIMEOUT: 600000,
+    AUTO_LOGOUT: false,
     USERID: "userid",
     USERNAME: "username",
     USERORG: "userorg",

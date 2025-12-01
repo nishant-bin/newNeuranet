@@ -26,7 +26,7 @@ function handleLoginResult(fetchResponse) {
         session.set(APP_CONSTANTS.LOGIN_RESPONSE, jsonResponseObject);
         securityguard.setCurrentRole(jsonResponseObject.role);
         LOG.info(`Neuranet login succeeded for ${jsonResponseObject.id}.`);
-        if (!APP_CONSTANTS.INSECURE_DEVELOPMENT_MODE) startAutoLogoutTimer();  
+        if (APP_CONSTANTS.AUTO_LOGOUT) startAutoLogoutTimer();  
         router.loadPage(APP_CONSTANTS.MAIN_HTML);
     } else {LOG.error(`Neuranet login failed.`); router.loadPage(`${APP_CONSTANTS.LOGIN_HTML}?_error=true`);}
 }

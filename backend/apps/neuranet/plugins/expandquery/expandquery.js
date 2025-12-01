@@ -16,6 +16,7 @@
 
 const llmchat = require(`${NEURANET_CONSTANTS.LIBDIR}/llmchat.js`);
 const simplellm = require(`${NEURANET_CONSTANTS.LIBDIR}/simplellm.js`);
+const sseevents = require(`${NEURANET_CONSTANTS.APIDIR}/sseevents.js`);
 const chatsessionmod = require(`${NEURANET_CONSTANTS.LIBDIR}/chatsession.js`);
 const llmflowrunner = require(`${NEURANET_CONSTANTS.LIBDIR}/llmflowrunner.js`);
 const langdetector = require(`${NEURANET_CONSTANTS.THIRDPARTYDIR}/langdetector.js`);
@@ -29,6 +30,7 @@ const REASONS = llmflowrunner.REASONS;
  * 	                        id - The user ID
  * 	                        org - User's Org
  * 	                        session_id - The session ID for a previous session if this is a continuation
+ * 							message_id - The message ID - always comes from the frontend for all messages
  * 	                        query - The incoming query
  * 	                        brainid - The brain ID
  * 
@@ -36,7 +38,7 @@ const REASONS = llmflowrunner.REASONS;
  */
 exports.expand = async (params) => {
 	const id = params.id, org = params.org, params_session_id = params.session_id, query_in = params.query, 
-		brainid = params.brainid||params.aiappid, forceExpansion = params.force_expansion;
+		brainid = params.brainid||params.aiappid, forceExpansion = params.force_expansion, message_id = params.message_id;
 
 	LOG.debug(`Got query expansion for query ${query_in} from ID ${id} of org ${org}.`);
 
@@ -68,8 +70,9 @@ exports.expand = async (params) => {
 			{flatsession: flatSession, session: finalSessionObject, question: query_in, ...params}, 
 			aiModelObject);
 		if (!expandedQuery) LOG.error("Couldn't expand the query, continuing with the originial query.");
+		else if (message_id) sseevents.emitThought(id, org, message_id, `I have figured out the user wants me to provide information for this question\n${expandedQuery}`);
     }
 
-	LOG.info(`The query expansion for query '${query_in}' from ID ${id} of org ${org} is: '${expandedQuery}'`);
+	LOG.info(sessionID, `The query expansion for query '${query_in}' from ID ${id} of org ${org} is: '${expandedQuery}'`);
     return expandedQuery || query_in;
 }

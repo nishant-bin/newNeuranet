@@ -12,19 +12,18 @@ import katex from "./3p/katex-0.16.min.mjs";
 import {util} from "/framework/js/util.mjs";
 import {marked} from "./3p/marked.esm.min.js";
 import {router} from "/framework/js/router.mjs";
-import {apimanager as apiman} from "/framework/js/apimanager.mjs";
 import {monkshu_component} from "/framework/js/monkshu_component.mjs";
-import {session} from "/framework/js/session.mjs";
 
 const COMPONENT_PATH = util.getModulePathFromURL(import.meta.url), DEFAULT_MAX_ATTACH_SIZE = 4194304, 
     DEFAULT_MAX_ATTACH_SIZE_ERROR = "File size is larger than allowed size";
-const sttAPI = `${APP_CONSTANTS.API_PATH}/voicetools`, ttsAPI = sttAPI;
 
 let MUSTACHE;
 
 async function elementConnected(host) {
     const ATTACHMENT_ALLOWED = host.getAttribute("attach")?.toLowerCase() == "true";
-	chat_box.setDataByHost(host, {COMPONENT_PATH, ATTACHMENT_ALLOWED: ATTACHMENT_ALLOWED?"true":undefined});
+    const stt_flag = host.getAttribute("stt")?.toLowerCase() == "true", tts_flag = host.getAttribute("tts")?.toLowerCase() == "true";
+	chat_box.setDataByHost(host, {COMPONENT_PATH, ATTACHMENT_ALLOWED: ATTACHMENT_ALLOWED?"true":undefined, 
+        STT: stt_flag?"true":undefined, TTS: tts_flag?"true":undefined });
     const memory = chat_box.getMemoryByHost(host); memory.FILES_ATTACHED = [];
     MUSTACHE = await router.getMustache();
 }
@@ -40,156 +39,35 @@ async function send(containedElement) {
     const userMessageArea = shadowRoot.querySelector("textarea#messagearea"), userPrompt = userMessageArea.value.trim();
     if (userPrompt == "") return;    // empty prompt, ignore
 
-    const disMessage = shadowRoot.querySelector("div#message"), buttonSendImg = shadowRoot.querySelector("img#send"), checkBox = shadowRoot.querySelector("input#multiline");
-    disMessage.classList.add("disabled"), checkBox.setAttribute("disabled", true); buttonSendImg.src = `${COMPONENT_PATH}/img/spinner.svg`; userMessageArea.readOnly = true;
-    const oldInsertion = _insertAIResponse(shadowRoot, userMessageArea, userPrompt, undefined, undefined, false);
-    const onRequest = host.getAttribute("onrequest"), api_chat = host.getAttribute("chatapi");
-    const requestProcessor = util.createAsyncFunction(`return await ${onRequest};`), 
-        request = await requestProcessor({chatbox: this, prompt: userPrompt, files: _getMemory(containedElement).FILES_ATTACHED});
-    const result = await apiman.rest(`${api_chat}`, "POST", request, true);
+    // disable send box and controls
+    const divMessage = shadowRoot.querySelector("div#message"), 
+        buttonSendImg = shadowRoot.querySelector("img#send"), 
+        checkBox = shadowRoot.querySelector("input#multiline");
+    divMessage.classList.add("disabled"), checkBox.setAttribute("disabled", true); 
+    buttonSendImg.src = `${COMPONENT_PATH}/img/spinner.svg`; userMessageArea.readOnly = true;
 
-    const onResult = host.getAttribute("onresult"), resultProcessor = util.createAsyncFunction(`return await ${onResult};`), 
-        processedResult = await resultProcessor({chatbox: this, result});
-    _insertAIResponse(shadowRoot, userMessageArea, userPrompt, processedResult[processedResult.ok?"response":"error"], oldInsertion, true);
-
-    if (!processedResult.ok) {  // sending more messages is now disabled as this chat is dead due to error
-        buttonSendImg.onclick = ''; buttonSendImg.src = `${COMPONENT_PATH}/img/senddisabled.svg`;
-    } else { // enable sending more messages
-        buttonSendImg.src = `${COMPONENT_PATH}/img/send.svg`;
-        disMessage.classList.remove("disabled"), checkBox.removeAttribute("disabled");
-        userMessageArea.readOnly = false;
-    }   
-}
-
-async function startVoiceInput(containedElement) {
-    LOG.info("STT: Triggered");
-
-    const shadowRoot = chat_box.getShadowRootByContainedElement(containedElement);
-    const textarea = shadowRoot.querySelector("textarea#messagearea");
-    const micButton = shadowRoot.querySelector("img#mic");
-    const disMessage = shadowRoot.querySelector("div#message");
-
-    let mediaRecorder, audioChunks = [], stream;
-
-    const showSpinner = () => {
-        textarea.readOnly = true;
-        disMessage.classList.add("disabled");
-        micButton.dataset.originalSrc = micButton.src;
-        micButton.src = `${COMPONENT_PATH}/img/spinner.svg`;
-        micButton.classList.add("rotating");
-    };
-    const restoreMic = () => {
-        textarea.readOnly = false;
-        disMessage.classList.remove("disabled");
-        micButton.src = micButton.dataset.originalSrc;
-        micButton.classList.remove("rotating");
-    };
-
-    const handleRecordingStop = async () => {
-        LOG.info("STT: Recording stopped, preparing request...");
-        showSpinner(); 
-        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-        const audioBase64 = await _blobToBase64(audioBlob);
-        stream.getTracks().forEach(t => t.stop()); 
-
-        const request = { 
-            service: "stt", 
-            id: session.get(APP_CONSTANTS.USERID), 
-            org: session.get(APP_CONSTANTS.USERORG), 
-            audiofile: audioBase64 
-        };
-
-        try {
-            const result = await apiman.rest(sttAPI, "POST", request, true);
-            LOG.info("STT: API raw response →", result);
-
-            const transcript = result?.text || "";
-            if (result?.result && transcript.trim()) {
-                textarea.value = transcript.trim();
-                textarea.focus();
-                LOG.info("STT: Transcription →", transcript);
-            } else {
-                LOG.error("STT: API returned no valid transcription");
-                alert("Voice recognition failed: " + (result?.reason || "Unknown error"));
-            }
-        } catch (err) { LOG.error("STT API Error:", err); alert("STT service unavailable"); } 
-        finally { restoreMic(); }
-    };
-
-    micButton.onmousedown = async () => {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-
-            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-            mediaRecorder.onstop = handleRecordingStop;
-
-            mediaRecorder.start();
-            LOG.info("STT: Recording started (hold mic to record)...");
-        } catch (err) { LOG.error("Voice input error:", err); alert("Microphone access failed"); }
-    };
-
-    micButton.onmouseup = micButton.ontouchend = () => {
-        if (mediaRecorder && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-            LOG.info("STT: Recording stopped by user.");
-        }
-    };
-}
-
-async function playTTS(containedElement) {
-    LOG.info("TTS: Triggered");
-    try {
-        const aiResponseEl = containedElement.closest("span#aicontentholder")?.querySelector("span#airesponse");
-        if (!aiResponseEl) { LOG.error("TTS: AI response element not found"); return;}
-
-        const text = aiResponseEl.innerText.trim();
-        if (!text) { LOG.warn("TTS: No text available to synthesize"); return;}
-
-        const host = chat_box.getHostElement(containedElement);
-        LOG.info("TTS: API endpoint →", ttsAPI);
-
-        const result = await apiman.rest(ttsAPI, "POST", { service: "tts",id: session.get(APP_CONSTANTS.USERID), org: session.get(APP_CONSTANTS.USERORG), text }, true);
-        LOG.info("TTS: API raw response →", result);
-
-        if (!result?.result) {
-            LOG.error("TTS: API returned failure", result);
-            alert("TTS playback failed: " + (result?.reason || "Unknown error"));
-            return;
-        }
-
-        let audioBase64 = result.audiofile;
-        if ((!audioBase64) && result.response?.audiofile) audioBase64 = result.response.audiofile;
-
-        const onResult = host.getAttribute("onresult");
-        if (onResult) {
-            const resultProcessor = util.createAsyncFunction(`return await ${onResult};`);
-            const processedResult = await resultProcessor({ chatbox: this, result });
-            if (processedResult?.ok && processedResult.response?.audiofile) {
-                audioBase64 = processedResult.response.audiofile;
-            }
-        }
-
-        if (audioBase64) {
-            const audioSrc = `data:audio/mp3;base64,${audioBase64}`;
-            const audio = new Audio(audioSrc);
-            audio.play().catch(err => LOG.error("TTS: Playback error", err));
-            LOG.info("TTS: Playing audio...");
-        } else {
-            LOG.error("TTS: No audiofile found in API response");
-            alert("TTS playback failed: Missing audio data");
-        }
-    } catch (err) { LOG.error("TTS Error:", err); alert("TTS service unavailable"); }
-}
-
-function _blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
+    // insert the user's message
+    const message_id = `${Date.now()}${Math.floor(Math.random() * 1000) + 1}`;
+    _insertAIRequest(shadowRoot, userMessageArea, userPrompt, message_id);
+    
+    // send the message to the backend to get a response
+    const onRequest = host.getAttribute("onrequest"); 
+    const wrappedChatBox = {
+        insertAIResponse: (processedResult, message_id) => {
+            _insertAIResponse(shadowRoot, processedResult[processedResult.ok?"response":"error"], processedResult.mime, message_id);
+            if (!processedResult.ok) {  // sending more messages is now disabled as this chat is dead due to error
+                buttonSendImg.onclick = ''; buttonSendImg.src = `${COMPONENT_PATH}/img/senddisabled.svg`;
+            } else { // enable sending more messages
+                buttonSendImg.src = `${COMPONENT_PATH}/img/send.svg`;
+                divMessage.classList.remove("disabled"), checkBox.removeAttribute("disabled");
+                userMessageArea.readOnly = false;
+            }   
+        },
+        getCollapsibleSection: (title, content) => _getCollapsibleSection(shadowRoot, title, content),
+        getAIContent: message_id => _getAIResponseContent(shadowRoot, message_id)
+    }
+    const requestProcessor = util.createAsyncFunction(`return await ${onRequest};`);
+    requestProcessor({chatbox: wrappedChatBox, message_id, prompt: userPrompt, files: _getMemory(containedElement).FILES_ATTACHED});
 }
 
 async function attach(containedElement) {
@@ -224,8 +102,35 @@ async function detach(containedElement, fileid) {
     if (nodeToDelete) insertionNode.removeChild(nodeToDelete);
 }
 
-function getCollapsibleSection(hostid, title, content) {
-    const shadowRoot = chat_box.getShadowRootByHostId(hostid);
+async function saveAsWord(containedElement, airesponse_element_id) {
+    const shadowRoot = chat_box.getShadowRootByContainedElement(containedElement);
+    const elementAIResponse = shadowRoot.querySelector(`span.airesponse#${airesponse_element_id}`); 
+    if ((!elementAIResponse) || (elementAIResponse.dataset.originalmime != "text/markdown") || 
+        (elementAIResponse.dataset.originalcontent_mime != "text/plain")) return; // we can't convert anything other than MD or plain text
+    
+    try {
+        const mdContentWithHTML = elementAIResponse.dataset.originalcontent;
+        const mdContentWithoutHTML = mdContentWithHTML.replace(/<[^>]*>/g, '');    // remove HTML tags from markdown as they don't parse
+        const mdModule = await import(`${COMPONENT_PATH}/3p/markdown_docx_1.4.3.mjs`);
+        const docxTree = await mdModule.markdownDocx(mdContentWithoutHTML);
+        const docx = await import(`${COMPONENT_PATH}/3p/docx_9.5.1.mjs`);
+        const docxArrayBuffer = await docx.Packer.toArrayBuffer(docxTree);
+        const fileName = `chat_${new Date(Date.now()).toLocaleString().replaceAll(' ', '_').replaceAll(',', '')}.docx`;
+        util.downloadFile(docxArrayBuffer, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", fileName);
+    } catch (err) {
+        LOG.error(err);
+    }
+}
+
+async function startVoiceInput(containedElement) {
+    LOG.info("STT: Triggered"); // to do: use Web Speech API here not a call to backend
+}
+
+async function playTTS(containedElement) {
+    LOG.info("TTS: Triggered"); // to do: use Web Speech API here not a call to backend
+}
+
+function _getCollapsibleSection(shadowRoot, title, content) {
     const insertionTemplate = shadowRoot.querySelector("template#collapsible_content_template").innerHTML;   
     const rendered = MUSTACHE.render(insertionTemplate, {title, content});
     return rendered;
@@ -238,27 +143,56 @@ function _detachAllFiles(shadowRoot, clearAttachedFileMemory) {
     while (insertionNode.firstChild) insertionNode.removeChild(insertionNode.firstChild);
 }
 
-function _insertAIResponse(shadowRoot, userMessageArea, userPrompt, aiResponse, oldInsertion, clearAttachedFileMemory) {
-    const insertionTemplate = shadowRoot.querySelector("template#chatresponse_insertion_template").content.cloneNode(true);   // insert current prompt and reply
-    const insertion = oldInsertion||insertionTemplate.querySelector("div#insertiondiv");
-    insertion.querySelector("span#userprompt").innerHTML = userPrompt;
-    const elementAIResponse = insertion.querySelector("span#airesponse");
-    if (aiResponse) {
-        const htmlContent = _latexedMarkdownToHTML(aiResponse);
-        elementAIResponse.innerHTML = htmlContent + insertionTemplate.querySelector("span#controls").outerHTML;
-        elementAIResponse.dataset.content = `<!doctype html>\n${htmlContent}\n</html>`;
-        elementAIResponse.dataset.content_mime = "text/html";
-    }
+function _insertAIRequest(shadowRoot, userMessageArea, userPrompt, message_id) {
+    const insertionTemplate = shadowRoot.querySelector("template#chatresponse_insertion_template").content.cloneNode(true);   
+    const insertion = insertionTemplate.querySelector("div.insertiondiv"); insertion.id = `c${message_id}`; 
+    const elementUserprompt = insertion.querySelector("span.userprompt"); elementUserprompt.id = `c${message_id}`; 
+    elementUserprompt.innerHTML = userPrompt;
     shadowRoot.querySelector("div#chatmainarea").appendChild(insertion);
+
+    // scroll to the bottom
     const chatScroller = shadowRoot.querySelector("div#chatscroller");
     chatScroller.scrollTop = chatScroller.scrollHeight;
 
-    shadowRoot.querySelector("div#start").classList.replace("visible", "hidden"); // hide the startup logo and messages
-    chatScroller.classList.replace("hidden", "visible");  // show chats
+    // hide the startup logo and messages and switch to chat if this is the first message
+    if (shadowRoot.querySelector("div#start").classList.contains("visible")) {   
+        shadowRoot.querySelector("div#start").classList.replace("visible", "hidden");
+        chatScroller.classList.replace("hidden", "visible");  
+    }
+    
+    // clear the message area and attached files to prepare for the next message
     userMessageArea.value = ""; // clear text area for the next prompt
-    _detachAllFiles(shadowRoot, clearAttachedFileMemory);  // clear file attachments
+    _detachAllFiles(shadowRoot, false);  // clear file attachments
+}
 
-    return insertion;
+function _insertAIResponse(shadowRoot, aiResponse, aiReponseMime="text/markdown", message_id) {
+    // insert current prompt and/or reply
+    const insertion = shadowRoot.querySelector(`div.insertiondiv#c${message_id}`);
+    if (!insertion) return;
+    const elementAIResponse = insertion.querySelector("span.airesponse"); elementAIResponse.id = `c${message_id}`;
+    const htmlContent = aiReponseMime=="text/markdown" ? _latexedMarkdownToHTML(aiResponse): aiResponse;
+    const insertionTemplate = shadowRoot.querySelector("template#chatresponse_insertion_template").content.cloneNode(true);   
+    elementAIResponse.innerHTML = htmlContent + insertionTemplate.querySelector("span.controls").outerHTML;
+    elementAIResponse.dataset.content = `<!doctype html>\n${htmlContent}\n</html>`;
+    elementAIResponse.dataset.content_mime = "text/html";
+    elementAIResponse.dataset.originalcontent = aiResponse;
+    elementAIResponse.dataset.originalcontent_mime = aiReponseMime;
+    const elementControlsWord = insertion.querySelector("img#controlsword");
+    if (aiReponseMime.toLowerCase() == "text/markdown") elementControlsWord.classList.remove("hidden");
+
+    // scroll to the bottom
+    const chatScroller = shadowRoot.querySelector("div#chatscroller");
+    chatScroller.scrollTop = chatScroller.scrollHeight;
+
+    // forget attached files
+    _detachAllFiles(shadowRoot, true);  // clear file attachments
+}
+
+function _getAIResponseContent(shadowRoot, message_id) {
+    const insertion = shadowRoot.querySelector(`div.insertiondiv#c${message_id}`);
+    if (!insertion) return "";
+    const elementAIResponse = insertion.querySelector("span.airesponse");
+    return elementAIResponse.dataset.originalcontent;
 }
 
 function _latexedMarkdownToHTML(text) {
@@ -279,5 +213,6 @@ function _latexedMarkdownToHTML(text) {
 
 const _getMemory = containedElement => chat_box.getMemoryByContainedElement(containedElement);
 
-export const chat_box = {trueWebComponentMode: true, elementConnected, elementRendered, send, attach, detach, getCollapsibleSection, startVoiceInput, playTTS}
+export const chat_box = {trueWebComponentMode: true, elementConnected, elementRendered, send, attach, 
+    detach, saveAsWord, startVoiceInput, playTTS}
 monkshu_component.register("chat-box", `${COMPONENT_PATH}/chat-box.html`, chat_box);

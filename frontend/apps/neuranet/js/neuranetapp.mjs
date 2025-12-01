@@ -68,7 +68,7 @@ async function _createdata(data) {
     const viewURL = `${viewPath}/main.html`, viewMainMJS = `${viewPath}/js/main.mjs`;
     data.viewpath = viewPath; data.aiendpoint = aiendpoint; data.activeaiapp = activeaiapp; data.icons = {};
     try { const viewMain = await import(viewMainMJS); await viewMain.main.initView(data, neuranetapp); }    // init the view before loading it
-    catch (err) { LOG.error(`Error in initializing view ${viewPath}.`); }
+    catch (err) { LOG.error(`Error in initializing view ${viewPath} due to error ${err}.`); }
     data.viewcontent = await router.loadHTML(viewURL, {...data, views}); 
 }
 

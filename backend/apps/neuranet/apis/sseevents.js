@@ -7,7 +7,8 @@
 
 const blackboard = require(`${CONSTANTS.LIBDIR}/blackboard.js`);
 
-const EVENTS_KEY = "__org_monkshu_neuranet_events_key", MEM_TO_USE = CLUSTER_MEMORY, NN_FILEUPDATE_EVENT_NAME = "nnfileupdate";
+const EVENTS_KEY = "__org_monkshu_neuranet_events_key", MEM_TO_USE = CLUSTER_MEMORY, 
+    NN_FILEUPDATE_EVENT_NAME = "nnfileupdate", NN_THOUGHTS_EVENT_NAME = "thoughts";
 
 exports.initSync = _ => blackboard.subscribe(NEURANET_CONSTANTS.NEURANETEVENT, message => {
     if ((message.type != NEURANET_CONSTANTS.EVENTS.AIDB_FILE_PROCESSING && 
@@ -16,8 +17,9 @@ exports.initSync = _ => blackboard.subscribe(NEURANET_CONSTANTS.NEURANETEVENT, m
 
     const usermemory = _getUserMemory(message.id, message.org);
     const percentComplete = _calculateAndUpdatePercentage(message);
-    const thisFilePreviouslyDone = usermemory[message.cmspath]?.done;    
-    usermemory[message.cmspath] = {...message, path: message.cmspath,   // overwrite full path as we don't want to send this out
+    const thisFilePreviouslyDone = usermemory[message.cmspath]?.done;   
+    if (!usermemory.fileevents) usermemory.fileevents = {}; 
+    usermemory.fileevents[message.cmspath] = {...message, path: message.cmspath,   // overwrite full path as we don't want to send this out
         done: thisFilePreviouslyDone || (message.type == NEURANET_CONSTANTS.EVENTS.AIDB_FILE_PROCESSED),    // if done previously a delayed processing message delivery may override it, so prevent that here
         result: message.result, percentage: percentComplete};
     _setUserMemory(message.id, message.org, usermemory);
@@ -26,7 +28,17 @@ exports.initSync = _ => blackboard.subscribe(NEURANET_CONSTANTS.NEURANETEVENT, m
 
 exports.doSSE = async (jsonReq, sseEventSender) => {
     const usermemory = _getUserMemory(jsonReq.id, jsonReq.org);
-    if (usermemory) sseEventSender({event: NN_FILEUPDATE_EVENT_NAME, id: Date.now(), data:{events: (usermemory||{})}});
+    if (usermemory) {
+        sseEventSender({event: NN_FILEUPDATE_EVENT_NAME, id: Date.now(), data:{events: (usermemory.fileevents||{})}});
+        sseEventSender({event: NN_THOUGHTS_EVENT_NAME, id: Date.now(), data:{events: (usermemory.thoughts||{})}});
+    }
+}
+
+exports.emitThought = (id, org, messageID, thought) => {
+    const usermemory = _getUserMemory(id, org);
+    if (!usermemory.thoughts) usermemory.thoughts = {}; 
+    usermemory.thoughts[messageID] = [...(usermemory.thoughts[messageID]||[]), thought];
+    _setUserMemory(id, org, usermemory);
 }
 
 /**

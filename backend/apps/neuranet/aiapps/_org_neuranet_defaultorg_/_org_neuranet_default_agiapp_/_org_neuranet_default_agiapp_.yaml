@@ -10,6 +10,8 @@ interface:                                  # the interface details
   skippable_file_patterns: 
     - ^_neuranet_generated?.+
     - ^\.system?.+
+  tts: false
+  stt: false
 endpoint: llmflow                           # the API endpoint - usually llmflow
 users: ["*"]                                # the * means all users, else must be an array of user IDs
 admins:                                     # the admins for this app - they can train for example
