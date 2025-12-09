@@ -107,9 +107,7 @@ async function detach(containedElement, fileid) {
     if (nodeToDelete) insertionNode.removeChild(nodeToDelete);
 }
 
-async function saveAsWord(containedElement, airesponse_element_id) {
-    const shadowRoot = chat_box.getShadowRootByContainedElement(containedElement);
-    const elementAIResponse = shadowRoot.querySelector(`span.airesponse#${airesponse_element_id}`); 
+async function saveAsWord(elementAIResponse) {
     if ((!elementAIResponse) || ((elementAIResponse.dataset.originalcontent_mime != "text/markdown") && 
         (elementAIResponse.dataset.originalcontent_mime != "text/plain"))) return; // we can't convert anything other than MD or plain text
     

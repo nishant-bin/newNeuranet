@@ -162,14 +162,14 @@ span#mobilefooter > img {
 <body style="margin: 0%">
 <span id="desktopheader">
 	<span id="rightheader">
-	<img id="textlogo" src="./img/logomainpage.svg" onclick="window.open(APP_CONSTANTS.APP_ABOUT_URL, '_blank')">
+	<img id="textlogo" src="./img/logomainpage.svg" onclick="window.open(APP_CONSTANTS.ABOUT_URL, '_blank')">
 	{{#showhome}}<img id="home" src="./img/home.svg" onclick="monkshu_env.apps[APP_CONSTANTS.APP_NAME].main.gohome()">{{/showhome}}
 	<span id="greeting">
 	<span><img id="person" src="{{#icons_person}}{{{.}}}.svg{{/icons_person}}{{^icons_person}}./img/person.svg{{/icons_person}}"></span>
 	<span id="name">{{i18n.Hi}} {{#_org_monkshu_session}}username{{/_org_monkshu_session}}!</span>
 	</span>
-	<span id="refresh"><img id="refresh" src="{{#icons_refresh}}{{{.}}}.svg{{/icons_refresh}}{{^icons_refresh}}./img/reload.svg{{/icons_refresh}}" 
-		onclick="location.reload()"></span>
+	{{#showrefresh}}<span id="refresh"><img id="refresh" src="{{#icons_refresh}}{{{.}}}.svg{{/icons_refresh}}{{^icons_refresh}}./img/reload.svg{{/icons_refresh}}" 
+		onclick="location.reload()"></span>{{/showrefresh}}
 	{{#shownotifications}}<span id="notifications"><img src="./img/bell.svg" onclick="monkshu_env.apps[APP_CONSTANTS.APP_NAME].main.showNotifications('{{{action}}}', event)"></span>{{/shownotifications}}
 	<span id="signoff"><img id="logoff" src="./img/poweroff.svg" onclick="monkshu_env.apps[APP_CONSTANTS.APP_NAME].main.logoutClicked()"></span>
 	</span>
@@ -181,7 +181,7 @@ span#mobilefooter > img {
 
 <span id="mobilefooter">
 	<img src="./img/mobilefooter_home.svg" onclick="monkshu_env.apps[APP_CONSTANTS.APP_NAME].main.gohome()">
-	<img src="{{#icons_refresh}}{{{.}}}_mobile.svg{{/icons_refresh}}{{^icons_refresh}}./img/mobilefooter_reload.svg{{/icons_refresh}}" onclick="location.reload()">
+	{{#showrefresh}}<img src="{{#icons_refresh}}{{{.}}}_mobile.svg{{/icons_refresh}}{{^icons_refresh}}./img/mobilefooter_reload.svg{{/icons_refresh}}" onclick="location.reload()">{{/showrefresh}}
 	{{#shownotifications}}<img class="headerimg" src="./img/mobilefooter_bell.svg" onclick="monkshu_env.apps[APP_CONSTANTS.APP_NAME].main.showNotifications('{{{action}}}', event, true)">{{/shownotifications}}
 	<img src="./img/mobilefooter_logout.svg" onclick="monkshu_env.apps[APP_CONSTANTS.APP_NAME].main.logoutClicked()">
 </span>

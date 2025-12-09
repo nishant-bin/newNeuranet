@@ -4,6 +4,6 @@
  * (C) 2023 Tekmonks Corp.
  */
 
-function initView() {}
+function initView(data) {data.showrefresh = undefined;}
 
 export const main = {initView};

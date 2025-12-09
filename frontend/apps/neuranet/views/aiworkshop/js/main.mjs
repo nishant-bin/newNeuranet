@@ -13,8 +13,9 @@ import {apimanager as apiman} from "/framework/js/apimanager.mjs";
 const MODULE_PATH = util.getModulePathFromURL(import.meta.url), VIEW_PATH = util.resolveURL(`${MODULE_PATH}/../`);
 const API_GET_AIAPPS = "getorgaiapps", API_OPERATEAIAPP = "operateaiapp";
 const DIALOG_ID = "dialog";
+const API_SSE_EVENTS = "sseevents", NN_FILEUPDATE_EVENT_NAME = "nnfileupdate";
 
-let selectedAIAppID, allAIApps, neuranetapp, cached_templates;
+let selectedAIAppID, allAIApps, neuranetapp, cached_templates, notification_events, old_thoughts={};
 
 async function initView(data, neuranetappIn) {
     neuranetapp = neuranetappIn;
@@ -33,6 +34,23 @@ async function initView(data, neuranetappIn) {
     const skippable_file_patterns = skippable_file_patternsSet ? skippable_file_patternsSet.interface.skippable_file_patterns : [];
     data.aiskipfolders_base64_json = skippable_file_patterns ? util.stringToBase64(JSON.stringify(skippable_file_patterns)) : undefined;
     allAIApps = data.aiapps;
+    data.showrefresh = undefined;
+    data.shownotifications = {action: "monkshu_env.apps[APP_CONSTANTS.APP_NAME].aiworkshop_main.getNotifications()"};
+    _setupSSEEvents();   // needed for notifications
+}
+
+async function getNotifications() {
+    if (!notification_events) LOG.debug(`No notification events.`); 
+
+    const eventsArray = []; if (notification_events) for (const event of Object.values(notification_events.events)) 
+        eventsArray.push({...event, success: event.result == true ? true : undefined, 
+            error: event.result == true ? undefined : true, VIEW_PATH});
+    
+    const eventsTemplate = document.querySelector("#notificationstemplate"), eventsHTML = eventsTemplate.innerHTML,
+        matches = /<!--([\s\S]+)-->/g.exec(eventsHTML), template = matches[1]; 
+    const renderedEvents = mustache.render(template, await router.getPageData(undefined, 
+        {events:eventsArray.length?eventsArray:undefined})); 
+    return renderedEvents;
 }
 
 async function aiappSelected(divAIApp, aiappid) {
@@ -130,6 +148,15 @@ async function trainAIApp() {
 
 const close = _ => neuranetapp.closeview();
 
+function _setupSSEEvents() {
+    const id = session.get(APP_CONSTANTS.USERID).toString(), org = session.get(APP_CONSTANTS.USERORG).toString();
+    const sseURL = `${APP_CONSTANTS.API_PATH}/${API_SSE_EVENTS}`;
+    const sse = apiman.subscribeSSEEvents(sseURL, {id, org}, true);
+    sse.addEventListener(NN_FILEUPDATE_EVENT_NAME, event => {
+        try {notification_events = JSON.parse(event.data)} catch (err) {LOG.error(`Error parsing file events`);}
+    });
+}
+
 async function _prompt(prompthtml, data, outputs) {
     const answer = await monkshu_env.components["dialog-box"].showDialog(prompthtml, true, true, data, DIALOG_ID, outputs);
     monkshu_env.components["dialog-box"].hideDialog(DIALOG_ID);
@@ -140,4 +167,5 @@ async function _prompt(prompthtml, data, outputs) {
 const _showMessage = (message) => monkshu_env.components["dialog-box"].showMessage(message, DIALOG_ID);
 const _showError = (error) => _showMessage(error);
 
-export const main = {initView, aiappSelected, newAIApp, deleteAIApp, publishAIApp, unpublishAIApp, trainAIApp, close};
+export const main = {initView, aiappSelected, newAIApp, deleteAIApp, publishAIApp, unpublishAIApp, 
+    trainAIApp, close, getNotifications};
