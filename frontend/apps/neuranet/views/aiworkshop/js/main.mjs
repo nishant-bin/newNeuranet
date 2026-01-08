@@ -40,16 +40,18 @@ async function initView(data, neuranetappIn) {
 }
 
 async function getNotifications() {
-    if (!notification_events) LOG.debug(`No notification events.`); 
-
-    const eventsArray = []; if (notification_events) for (const event of Object.values(notification_events.events)) 
-        eventsArray.push({...event, success: event.result == true ? true : undefined, 
-            error: event.result == true ? undefined : true, VIEW_PATH});
+    if(!notification_events?.events){ LOG.debug(`No notification events.`); return ""; }
+    const eventsArray = [];
+    for(const [fileName, event] of Object.entries(notification_events.events)) eventsArray.push({...event,
+        file: fileName,success: event.result === true && event.done === true ? true : undefined,
+            error: event.result === false ? true : undefined, VIEW_PATH});
+    const eventsTemplate = document.querySelector("#notificationstemplate");
+    if(!eventsTemplate) return "";
     
-    const eventsTemplate = document.querySelector("#notificationstemplate"), eventsHTML = eventsTemplate.innerHTML,
-        matches = /<!--([\s\S]+)-->/g.exec(eventsHTML), template = matches[1]; 
-    const renderedEvents = mustache.render(template, await router.getPageData(undefined, 
-        {events:eventsArray.length?eventsArray:undefined})); 
+    const template = eventsTemplate.innerHTML;
+    const mustache = await router.getMustache();
+    const pageData = await router.getPageData(undefined, {events: eventsArray.length ? eventsArray : undefined});
+    const renderedEvents = mustache.render(template, pageData); 
     return renderedEvents;
 }
 

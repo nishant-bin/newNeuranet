@@ -11,6 +11,7 @@ exports.initSync = _approot => {
 
     const aiapp = require(`${NEURANET_CONSTANTS.LIBDIR}/aiapp.js`);
     const events = require(`${NEURANET_CONSTANTS.APIDIR}/events.js`);
+    const sseevents = require(`${NEURANET_CONSTANTS.APIDIR}/sseevents.js`);
     const aidbfs = require(`${NEURANET_CONSTANTS.LIBDIR}/aidbfs.js`);
     const dblayer = require(`${NEURANET_CONSTANTS.LIBDIR}/dblayer.js`);
     const fileindexer = require(`${NEURANET_CONSTANTS.LIBDIR}/fileindexer.js`);
@@ -23,6 +24,7 @@ exports.initSync = _approot => {
     loginhandler.initSync(); 
     fileindexer.initSync();
     events.initSync();
+    sseevents.initSync();
     aiapp.initSync();
     brainhandler.initSync();
     aidbfs.initSync();
