@@ -278,7 +278,8 @@ exports.deleteAIAppForOrg = async function (aiappid, id, org, frontend_relative_
         await serverutils.createDirectory(appdbArchiveDirPath);
         await serverutils.zipFolder(appdbFolderPath, zipFilePath);
         await serverutils.rmrf(appdbFolderPath);    // delete trained DBs
-        BLACKBOARD.publish(BB_MESSAGE_KEY_UNPUBLISH, {id, org, aiappid, frontend_relative_webroot});    // delete frontend
+        const randomID = `${Date.now()}${Math.ceil(Math.random() * 10000)}`;
+        BLACKBOARD.publish(BB_MESSAGE_KEY_UNPUBLISH, {opid: randomID, id, org, aiappid, frontend_relative_webroot});    // delete frontend
         result = await serverutils.rmrf(appDir);    // delete app itself
     } catch (err) {
         LOG.error(`Error deleting AI app for org ${org}: ${err.message}`);
