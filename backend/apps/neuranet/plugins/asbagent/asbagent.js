@@ -107,7 +107,7 @@ exports.getMessageContent = async params => {
         return response?.response;
     }
     const llmdocchat = pluginhandler.getPlugin("llmdocchat");
-    const filesAttached = await llmdocchat.getFilesForPrompt(params.files);
+    const {filesForPrompt: filesAttached} = await llmdocchat.getFilesForPrompt(params.files);
     const languageDetectedForQuestion =  langdetector.getISOLang(params.question||params.raw_question);
 
     const promptsFile = `${aiappMod.getAppDir(params.id, params.org, params.aiappid)}/prompts.yaml`;

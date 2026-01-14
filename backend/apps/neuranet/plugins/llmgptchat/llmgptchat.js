@@ -71,7 +71,7 @@ exports.answer = async (params) => {
 	const {sessionID} = chatsessionmod.getUsersChatSession(id, params_session_id);
 
 	const llmdocchat = pluginhandler.getPlugin("llmdocchat");
-	let filesForPrompt = await llmdocchat.getFilesForPrompt(params.files);
+	let {filesForPrompt} = await llmdocchat.getFilesForPrompt(params.files);
 	
 	const languageDetectedForQuestion =  langdetector.getISOLang(params.question);
 	const promptTemplate =  params[`prompt_${languageDetectedForQuestion}`] || params.prompt;
