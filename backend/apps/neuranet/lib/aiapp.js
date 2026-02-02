@@ -13,6 +13,7 @@ const timedcache = require(`${CONSTANTS.LIBDIR}/timedcache.js`);
 const aiutils = require(`${NEURANET_CONSTANTS.LIBDIR}/aiutils.js`);
 const dblayer = require(`${NEURANET_CONSTANTS.LIBDIR}/dblayer.js`);
 const brainhandler = require(`${NEURANET_CONSTANTS.LIBDIR}/brainhandler.js`);
+const { _convertToPathFriendlyString } = require(`${NEURANET_CONSTANTS.LIBDIR}/neuranetutils.js`);
 
 const APP_CACHE = {}, FLOWSECTION_CACHE = {}, DEBUG_MODE = NEURANET_CONSTANTS.CONF.debug_mode, TIMED_CACHE = timedcache.newcache(300000);
 const BB_MESSAGE_KEY_PUBLISH = "_org_neuranet_aiapp_op_publish", BB_MESSAGE_KEY_UNPUBLISH = "_org_neuranet_aiapp_op_unpublish";
@@ -232,11 +233,11 @@ exports.initNewAIAppForOrg = async function(aiappid, label, id, org, template=NE
     try {
         let result = true; serverutils.walkFolder(defaultAppDir, async (fullpath, _stats, relativePath) => {
             if (!result) return;    // already failed, no point wasting time walking further
-            if (relativePath.toLowerCase().endsWith(".yaml")) relativePath = relativePath.replace(NEURANET_CONSTANTS.DEFAULT_ORG_DEFAULT_AIAPP, aiappid);    // replace app ID in path
+            if (_stats.isDirectory()) return;    // skip directories
+            if(relativePath.toLowerCase().endsWith(".yaml")) relativePath = relativePath.replace(template, aiappid);    // replace template ID with new app ID in path
             let fileContents = await fspromises.readFile(fullpath, "utf8");
             if (fullpath.toLowerCase().endsWith(".yaml")) fileContents = fileContents.replace(    // fix app IDs and labels
-                NEURANET_CONSTANTS.DEFAULT_ORG_DEFAULT_AIAPP, aiappid).replace(
-                    `label: ${NEURANET_CONSTANTS.DEFAULT_ORG_DEFAULT_AIAPP_LABEL}`, `label: ${label}`); 
+                template, aiappid);
             const fileBuffer = Buffer.from(fileContents, "utf8");
             result = await fileindexer.addFileToCMSRepository(id, org,  // app dir is CMS managed so this is needed
                 fileBuffer, relativePath, `AI app file for ${aiappid}`, brainhandler.createExtraInfo(
@@ -277,7 +278,8 @@ exports.deleteAIAppForOrg = async function (aiappid, id, org, frontend_relative_
         await serverutils.createDirectory(appdbArchiveDirPath);
         await serverutils.zipFolder(appdbFolderPath, zipFilePath);
         await serverutils.rmrf(appdbFolderPath);    // delete trained DBs
-        BLACKBOARD.publish(BB_MESSAGE_KEY_UNPUBLISH, {id, org, aiappid, frontend_relative_webroot});    // delete frontend
+        const randomID = `${Date.now()}${Math.ceil(Math.random() * 10000)}`;
+        BLACKBOARD.publish(BB_MESSAGE_KEY_UNPUBLISH, {opid: randomID, id, org, aiappid, frontend_relative_webroot});    // delete frontend
         result = await serverutils.rmrf(appDir);    // delete app itself
     } catch (err) {
         LOG.error(`Error deleting AI app for org ${org}: ${err.message}`);
@@ -406,7 +408,7 @@ exports.getAppFile = (id, org, aiappid) => `${exports.getAppDir(id, org, aiappid
 
 async function _pushAIAppViewForOrg(id, org, aiappid, frontend_relative_webroot) {
     const appFrontendDir = path.resolve(`${CONSTANTS.FRONTENDDIR}/${frontend_relative_webroot}`);
-    const viewDir = `${appFrontendDir}/${CUSTOM_VIEW_PATH}/${org}/${aiappid}`;
+    const viewDir = `${appFrontendDir}/${CUSTOM_VIEW_PATH}/${_convertToPathFriendlyString(org.toLowerCase())}/${_convertToPathFriendlyString(aiappid.toLowerCase())}`;
     const appFrontEndDir = `${exports.getAppDir(id, org, aiappid)}/frontend`;
     if (!(await serverutils.exists(appFrontEndDir))) return;    // nothing to do
 
@@ -428,7 +430,7 @@ async function _deleteAIAppViewForOrg(id, org, aiappid, frontend_relative_webroo
     if (!(await serverutils.exists(appFrontEndDir))) return;    // nothing to do
 
     const appFrontendDir = path.resolve(`${CONSTANTS.FRONTENDDIR}/${frontend_relative_webroot}`);
-    const viewDir = `${appFrontendDir}/${CUSTOM_VIEW_PATH}/${org}/${aiappid}`;
+    const viewDir = `${appFrontendDir}/${CUSTOM_VIEW_PATH}/${_convertToPathFriendlyString(org.toLowerCase())}/${_convertToPathFriendlyString(aiappid.toLowerCase())}`;
     try {serverutils.rmrf(viewDir);} catch (err) {LOG.error(`Error ${err} deleting view from the frontend for for app ID ${aiappid} for org ${org}`)}
 }
 
