@@ -22,8 +22,8 @@ exports.handleRawRequest = async function(jsonReq, servObject, headers, url) {
 	if (!securid.check(jsonReq.securid)) {LOG.error("SecurID validation failure."); _sendError(servObject, true); return;}
 
 	const headersMod = {...headers, "authorization": `Bearer ${jsonReq.auth}`};
-	jsonReq.fullpath = await cms.getFullPath(headersMod, jsonReq.path, jsonReq.extrainfo);
-	if (!await cms.isSecure(headersMod, jsonReq.fullpath, jsonReq.extrainfo)) {LOG.error(`Path security validation failure: ${jsonReq.path}`); _sendError(servObject); return;}
+	jsonReq.fullpath = await cms.getFullPath(headersMod, jsonReq.path, jsonReq.extraInfo);
+	if (!await cms.isSecure(headersMod, jsonReq.fullpath, jsonReq.extraInfo)) {LOG.error(`Path security validation failure: ${jsonReq.path}`); _sendError(servObject); return;}
 
 	await this.downloadFile(jsonReq, servObject, headers, url);
 }
@@ -111,7 +111,7 @@ async function _zipDirectory(pathIn) {	// unencrypt, ungzip etc before packing t
 				
 				const zippable = uploadfile.isZippable(fullPath); 
 				let readstreamEntry = fs.createReadStream(fullPath); 
-				if (uploadfile.isEncryptable(fullpath)) readstreamEntry = readstreamEntry.pipe(crypt.getDecipher(XBIN_CONSTANTS.CONF.SECURED_KEY));
+				if (uploadfile.isEncryptable(fullPath)) readstreamEntry = readstreamEntry.pipe(crypt.getDecipher(XBIN_CONSTANTS.CONF.SECURED_KEY));
 				if (zippable) readstreamEntry = readstreamEntry.pipe(zlib.createGunzip());	
 				archive.append(readstreamEntry, {name: relativePath});
 			}, false, _=>archive.finalize());
