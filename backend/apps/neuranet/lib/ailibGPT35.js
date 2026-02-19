@@ -22,7 +22,7 @@ const PROMPT_VAR = "${__ORG_NEURANET_PROMPT__}", SAMPLE_MODULE_PREFIX = "module(
     DEFAULT_GPT_TOKENS_PER_WORD = 1.25, INTERNAL_TOKENIZER = "internal", DEFAULT_GPT_TOKENIZER = "gpt-tokenizer", 
     DEFAULT_TOKEN_UPLIFT = 1.05, DEFAULT_AI_API_RETRIES = 5, DEFAULT_AI_API_BACKOFF_WAIT = 150, 
     DEFAULT_AI_API_BACKOFF_EXPONENT=2, DEFAULT_AI_API_TIMEOUT_WAIT=60000, MAX_LOG_NON_VERBOSE_TRUNCATE = 250,
-    DEFAULT_REQUESTS_PER_SECOND=50, TICKETING_BOOTH = {};
+    DEFAULT_REQUESTS_PER_SECOND=50, TICKETING_BOOTH = {}, MAX_TOKEN_FRACTION_TO_RESPONSE = 0.8;
 
 /**
  * Runs the AI LLM.
@@ -44,11 +44,12 @@ exports.process = async function(data, promptOrPromptFile, apiKey, model, dontIn
 
     const tokencount_request = await exports.countTokens(prompt, modelObject.request.model, 
         modelObject.token_approximation_uplift, modelObject.tokenizer);
-    if (tokencount_request > modelObject.request.max_tokens - 1) {
+    if (tokencount_request > (modelObject.request.max_tokens*MAX_TOKEN_FRACTION_TO_RESPONSE)) {
         LOG.error(`Request too large for the model's context length - the token count is ${tokencount_request}, the model's max context length is ${modelObject.request.max_tokens}.`); 
         LOG.error(`The request prompt was ${JSON.stringify(prompt)}`);
         return null; 
     } 
+
     if (modelObject.request.max_tokens) delete modelObject.request.max_tokens;  // retaining this causes many errors in OpenAI as the tokencount is always approximate, while this value - if provided - must be absolutely accurate
 
     let promptObject; const _logPromptParseError = (prompt, err) => LOG.error(`Bad prompt or parsing error: ${err}. The raw prompt was ${prompt}`);
@@ -71,10 +72,8 @@ exports.process = async function(data, promptOrPromptFile, apiKey, model, dontIn
     if (modelObject.read_ai_response_from_samples) LOG.info("*************>> Reading sample response as requested by the model. <<*************");
 
     let response, retries = 0;
-    const _postAIRequest = _ => rest[  // https by default if protocol is not mentioned in the driver config
-        modelObject.driver.protocol == "http" ? 
-        "post" : "postHttps" 
-    ](modelObject.driver.host, modelObject.driver.port, 
+    const requestProtocol = modelObject.driver.protocol == "http" ? "post" : "postHttps";
+    const _postAIRequest = _ => rest[requestProtocol](modelObject.driver.host, modelObject.driver.port, 
         modelObject.driver.path, {"Authorization": modelObject.isBasicAuth ? `Basic ${apiKey}` : `Bearer ${apiKey}`, 
             ...(modelObject.x_api_key ? {"x-api-key": modelObject.x_api_key} : {})}, promptObject);
     const _is200ResponseStatus = status => typeof status !== "number" ? false : 
