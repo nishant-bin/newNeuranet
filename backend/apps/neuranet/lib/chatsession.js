@@ -32,7 +32,7 @@ exports.getUsersChatSession = (userid, session_id_in) => {
 exports.setUsersChatSession = (userid, session_id_in, chatsessionToSet) => {
 	const sessionID = session_id_in,  // not generating any new session ID if not exists, as it's an update call not a get call
 		sessionKey = `${CHAT_SESSION_MEMORY_KEY_PREFIX}_${userid}`; 
-	if (!session_id_in || typeof session_id_in !== "number")  // No need to update & return the empty sessions if not a valid session ID mentioned
+	if (!session_id_in)  // No need to update & return the empty sessions if no session ID mentioned
 		return {result: true, chatsession: [], sessionID, sessionKey};
 	if (!Array.isArray(chatsessionToSet))  // handling for an invalid chatsessionToSet
 		return {result: false, error: "Invalid chatsession to set: Not an Array", sessionID, sessionKey};
