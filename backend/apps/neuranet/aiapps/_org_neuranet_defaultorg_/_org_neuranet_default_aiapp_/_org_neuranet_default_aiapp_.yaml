@@ -231,6 +231,8 @@ global_models:
   - name: chat-knowledgebase-openai
     model_overrides:                    
       read_ai_response_from_samples: true
+      request:                  # Nested Keys' overriding is supported.
+        temperature: 1.0
 
   - name: simplellm-openai
     model_overrides:                    

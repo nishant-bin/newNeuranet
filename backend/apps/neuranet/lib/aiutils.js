@@ -31,10 +31,10 @@ exports.getAIModel = async function(model_name, overrides) {
     const _overrideModel = async model => { 
         if (model.inherits) {
             const basemodel = await exports.getAIModel(model.inherits);
-            for (const [key, value] of Object.entries(model)) serverutils.setObjProperty(basemodel, key, value);
+            for (const [key, value] of Object.entries(model)) serverutils.setObjProperty(basemodel, key, value);  // When using inheritance, copy the base model and rename it. Use recursive overriding here if you need to override recursive properties along with the name. If not, a normal override is sufficient.
             model = basemodel;
         }
-        if (overrides) for (const [key, value] of Object.entries(overrides)) serverutils.setObjProperty(model, key, value);
+        if (overrides) for (const [key, value] of Object.entries(overrides)) serverutils.setObjPropertyRecursive(model, key, value);  // It allows us to recursively override the key values. This stops the entire object from being replaced. Only the needed key values are changed.
         return model;
     }
     if ((!DEBUG_RUN) && NEURANET_CONSTANTS.CONF.ai_models[model_name]) return await _overrideModel(serverutils.clone(NEURANET_CONSTANTS.CONF.ai_models[model_name]));
