@@ -64,11 +64,17 @@ exports.chat = async params => {
 }
 
 exports.getAIModelAndObjectKeyAndLibrary = async (modelobject, id, org, aiappid) => {
-	const aiModelToUse = modelobject.name || MODEL_DEFAULT, 
-		aiModelObject = typeof aiModelToUse === "object" ? aiModelToUse : 
-			await aiapp.getAIModel(aiModelToUse, modelobject.model_overrides, id, org, aiappid),
-        aiKey = crypt.decrypt(aiModelObject.ai_key, NEURANET_CONSTANTS.CONF.crypt_key),
-        aiModuleToUse = `${NEURANET_CONSTANTS.LIBDIR}/${aiModelObject.driver.module}`;
+    let aiModelToUse, aiModelObject;
+    if (modelobject && modelobject.name) aiModelToUse = modelobject.name;
+    else aiModelToUse = MODEL_DEFAULT;
+    
+    if (modelobject && modelobject.driver && modelobject.driver.module) aiModelObject = modelobject;	// Already a complete AI model object    
+    else {	// Need to fetch the model configuration
+        const modelOverrides = modelobject ? modelobject.model_overrides : undefined;
+        aiModelObject = await aiapp.getAIModel(aiModelToUse, modelOverrides, id, org, aiappid);
+    }
+    const aiKey = crypt.decrypt(aiModelObject.ai_key, NEURANET_CONSTANTS.CONF.crypt_key);
+    const aiModuleToUse = `${NEURANET_CONSTANTS.LIBDIR}/${aiModelObject.driver.module}`;
 	let aiLibrary; try{aiLibrary = utils.requireWithDebug(aiModuleToUse, DEBUG_MODE);} catch (err) {
 		LOG.error("Bad AI Library or model - "+aiModuleToUse); 
 		return false;
