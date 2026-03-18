@@ -81,6 +81,12 @@ async function _runJSCode(code, context) {
 }
 
 async function _expandLLMFlowParam(key, value, working_memory) {
+    if(typeof value === "object" && !Array.isArray(value)) {  // handling the real objects via recursive Flow Expansion for special keys
+        let finalObject = {};
+        for(const internalKey of Object.keys(value)){
+            finalObject[exports.extractRawKeyName(internalKey)] = await _expandLLMFlowParam(internalKey, value[internalKey], working_memory);
+        } return finalObject;
+    }
     let finalValue;
     if (key.endsWith(NOINFLATE)) finalValue = value;
     else if (key.endsWith(JSCODE)) finalValue = await _runJSCode(mustache.render(value.toString(), working_memory), 
