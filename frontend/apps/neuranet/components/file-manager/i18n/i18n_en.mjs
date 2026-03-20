@@ -64,5 +64,6 @@ export const i18n = {
 "NotApplicable": "Not applicable",
 "ErrorSameFiles": "Both files or paths are the same, ignoring",
 "ErrorCopyDirToItself": "Can not copy or move a directory to inside itself, ignoring.",
-"FileTooBigToEdit": "Fils is too big to edit online. Please download first to edit."
+"FileTooBigToEdit": "Fils is too big to edit online. Please download first to edit.",
+"NotAuthorized": "You are not authorized to perform this operation."
 }

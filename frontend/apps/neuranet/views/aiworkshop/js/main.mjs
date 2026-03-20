@@ -85,11 +85,12 @@ async function newAIApp() {
     const loginresponse = session.get(APP_CONSTANTS.LOGIN_RESPONSE);
     if (loginresponse.role==="admin") {
         const id = session.get(APP_CONSTANTS.USERID).toString(), org = session.get(APP_CONSTANTS.USERORG).toString();
-        const templates = cached_templates || (await apiman.rest(
-            `${APP_CONSTANTS.API_PATH}/${API_OPERATEAIAPP}`, "POST", {id, org, op: "listtemplates"}, true)).templates || [];
-        if (!cached_templates) cached_templates = templates;
+        const templatesResult = cached_templates ? {templates: cached_templates} : await apiman.rest(
+            `${APP_CONSTANTS.API_PATH}/${API_OPERATEAIAPP}`, "POST", {id, org, op: "listtemplates"}, true);
+        if (templatesResult?.unauthorized) { await _showError(await i18n.get("AIWorkshop_NotAdmin")); return; }
+        if (!cached_templates) cached_templates = templatesResult?.templates;
         const newApp = await _prompt(`${VIEW_PATH}/dialogs/prompt.html`, 
-            {prompt: await i18n.get("AIWorkshop_AIAppNamePrompt"), templates, 
+            {prompt: await i18n.get("AIWorkshop_AIAppNamePrompt"), templates: cached_templates,
             templatelabel: await i18n.get("AIWorkshop_TemplateLabel")}, ["name", "template"]);
         const appName = newApp.name, appTemplate = newApp.template;
         if (!(appName?.trim())) return;   // nothing to do
@@ -101,6 +102,7 @@ async function newAIApp() {
         const result = await apiman.rest(`${APP_CONSTANTS.API_PATH}/${API_OPERATEAIAPP}`, "POST", 
             {id, org, aiappid: appName, template: appTemplate, op: "new"}, true);
         if (result && result.result) {await neuranetapp.refreshAIApps(); router.reload();}
+        else if (result?.unauthorized) await _showError(await i18n.get("AIWorkshop_NotAdmin"));
         else _showError(await i18n.get("AIWorkshop_AIAppGenericError"));
     } else await _showError(await i18n.get("AIWorkshop_NotAdmin"));
 }
@@ -111,6 +113,7 @@ async function deleteAIApp() {
     const result = await apiman.rest(`${APP_CONSTANTS.API_PATH}/${API_OPERATEAIAPP}`, "POST", 
         {id, org, aiappid: selectedAIAppID, frontend_relative_webroot: `apps/${APP_CONSTANTS.APP_NAME}`, op: "delete"}, true);
     if (result && result.result) {await neuranetapp.refreshAIApps(); router.reload();}
+    else if (result?.unauthorized) await _showError(await i18n.get("AIWorkshop_NotAdmin"));
     else _showError(await i18n.get("AIWorkshop_AIAppGenericError"));
 }
 

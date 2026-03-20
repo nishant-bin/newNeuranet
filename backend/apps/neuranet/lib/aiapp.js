@@ -375,6 +375,18 @@ exports.setDefaultAppIDForOrg = async function (org, aiappid) {
 exports.isThisDefaultOrgsDefaultApp = (_id, _org, aiappid) => aiappid == NEURANET_CONSTANTS.DEFAULT_ORG_DEFAULT_AIAPP;
 
 /**
+ * Returns true if the given user is an admin of the given AI app.
+ * @param {string} id The user ID
+ * @param {string} org The org
+ * @param {string} aiappid The app ID
+ * @returns true if the user is listed in the app's admins[] array (case-insensitive)
+ */
+exports.isAIAppAdmin = async (id, org, aiappid) => {
+    const appObject = await exports.getAIApp(id, org, aiappid);
+    return (appObject?.admins||[]).some(adminId => adminId.toLowerCase() == id.toLowerCase());
+}
+
+/**
  * Returns the app ID to use for a given request.
  * @param {string} id The ID 
  * @param {string} org The org 

@@ -21,17 +21,25 @@
  */
 
 const aiapp = require(`${NEURANET_CONSTANTS.LIBDIR}/aiapp.js`);
+const login = require(`${NEURANET_CONSTANTS.APIDIR}/login.js`);
 
 const OPS = Object.freeze({LIST_TEMPLATES: "listtemplates", NEW: "new", DELETE: "delete", PUBLISH: "publish", UNPUBLISH: "unpublish"})
 
-exports.doService = async jsonReq => {
+exports.doService = async (jsonReq, _servObject, headers) => {
     if (!validateRequest(jsonReq)) {LOG.error("Validation failure."); return CONSTANTS.FALSE_RESULT};
-    const op = jsonReq.op.toLowerCase(), id = jsonReq.id, org = jsonReq.org.toLowerCase();
+    const op = jsonReq.op.toLowerCase(), id = jsonReq.id, org = jsonReq.org.toLowerCase(); 
+    const isAdmin = login.isAdmin(headers);
     const frontend_relative_webroot = jsonReq.frontend_relative_webroot;
     const aiappid = jsonReq.aiappid ? jsonReq.aiappid.toLowerCase().trim().replaceAll(" ", "_") : undefined; // ensuring that aiappid must not have spaces
     const aiapplabel = jsonReq.aiapplabel || NEURANET_CONSTANTS.DEFAULT_AIAPP_LABEL;
     const template = jsonReq.template;
-
+    if (!isAdmin) {
+        if (op == OPS.NEW || op == OPS.DELETE || op == OPS.LIST_TEMPLATES) {
+            LOG.error(`User ${id} attempted ${op} without system admin role.`); return {...CONSTANTS.FALSE_RESULT, unauthorized: true};
+        }
+        const isAppAdmin = await aiapp.isAIAppAdmin(id, org, aiappid);
+        if (!isAppAdmin) {LOG.error(`User ${id} is not an admin for app ${aiappid}.`); return {...CONSTANTS.FALSE_RESULT, unauthorized: true};}
+    }
     if (op == OPS.LIST_TEMPLATES) return {...CONSTANTS.TRUE_RESULT, templates: await aiapp.getAppTemplates()};
     else if (op == OPS.NEW) return {result: await aiapp.initNewAIAppForOrg(aiappid, aiapplabel, id, org, template)};
     else if (op == OPS.DELETE) return {result: await aiapp.deleteAIAppForOrg(aiappid, id, org, frontend_relative_webroot)};
