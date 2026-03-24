@@ -197,12 +197,9 @@ function _insertAIThoughts(shadowRoot, thoughts, thoughts_mime="text/markdown", 
     if (!insertion) return;
     const elementCollapsibleContainer = insertion.querySelector("div.collapsiblecontainer#aithoughtsection");
     elementCollapsibleContainer.classList.add("visible");
-    const elementAIThoughtsParent = insertion.querySelector("div.collapsiblecontent#aithoughtcontent"); 
-    let elementAIThought = insertion.querySelector("div.collapsiblecontent#aithoughtcontent div.thought"); 
-    if (elementAIThought.innerHTML.trim() != "") {  // need to add a new element
-        elementAIThought = elementAIThought.cloneNode(true); elementAIThoughtsParent.appendChild(elementAIThought); }
+    const elementAIThought = insertion.querySelector("div.collapsiblecontent#aithoughtcontent div.thought");
     const htmlContent = thoughts_mime=="text/markdown" ? _latexedMarkdownToHTML(thoughts) : thoughts;
-    elementAIThought.innerHTML = htmlContent;
+    elementAIThought.innerHTML += htmlContent;
     const chatScroller = shadowRoot.querySelector("div#chatscroller");
     chatScroller.scrollTop = chatScroller.scrollHeight;
 }

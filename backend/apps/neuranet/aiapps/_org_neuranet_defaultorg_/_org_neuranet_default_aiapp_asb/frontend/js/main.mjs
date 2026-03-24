@@ -36,8 +36,8 @@ async function initView(data) {
 async function getAssistantResult(question, files, message_id, chatbox, aiappid) {
     const request = {id: session.get(APP_CONSTANTS.USERID).toString(), org: session.get(APP_CONSTANTS.USERORG).toString(), 
         question, session_id: chatsessionID, aiappid, files, message_id};
-    thoughtSubscribers[message_id] = async thoughts =>  // update chat with thoughts of the model while producing the final response
-        chatbox.insertAIThoughts(thoughts.join("\n\n"), "text/markdown", message_id);
+    thoughtSubscribers[message_id] = async newThoughts =>  // update chat with thoughts of the model while producing the final response
+        newThoughts.forEach(thought => chatbox.insertAIThoughts(thought, "text/markdown", message_id));
     const result = await apiman.rest(`${APP_CONSTANTS.API_PATH}/${AI_ENDPOINT}`, "POST", request, true);
     if (result.session_id) chatsessionID = result.session_id;  // save session ID so that backend can maintain session
 
@@ -94,9 +94,11 @@ function _setupSSEEvents() {
 }
 
 function _newThoughtsDetected(oldThoughts, newThoughts) {
-    for (const [message_id, thoughts] of Object.entries(newThoughts))
-        if (oldThoughts[message_id]?.sort().join(",") != thoughts.sort().join(",")) // this checks members are equal in the two arrays
-            if (thoughtSubscribers[message_id]) thoughtSubscribers[message_id](thoughts);
+    for (const [message_id, thoughts] of Object.entries(newThoughts)) {
+        const oldLen = oldThoughts[message_id]?.length||0;
+        if (thoughts.length > oldLen && thoughtSubscribers[message_id])
+            thoughtSubscribers[message_id](thoughts.slice(oldLen));
+    }
 }
 
 export const main = {initView, getAssistantResult};
